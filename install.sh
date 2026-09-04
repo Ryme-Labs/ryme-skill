@@ -125,25 +125,6 @@ install_global() {
   echo "  node $base/ryme-context-graph/scripts/ryme-graph.mjs --help"
 }
 
-# ── auto-update existing installs + migrate old .ryme → .ryme-skill graph path ──
-migrate_graph_path() {
-  local root="$1"
-  # Migrate old .ryme (graph) to .ryme-skill if new doesn't exist but old does
-  if [ -d "$root/.ryme" ] && [ ! -d "$root/.ryme-skill" ]; then
-    echo "Migrating old graph path .ryme → .ryme-skill in $root"
-    mv "$root/.ryme" "$root/.ryme-skill" 2>/dev/null || cp -r "$root/.ryme" "$root/.ryme-skill" 2>/dev/null || true
-  elif [ -d "$root/.ryme" ] && [ -d "$root/.ryme-skill" ] && [ -f "$root/.ryme/graph/manifest.json" ] && [ ! -f "$root/.ryme-skill/graph/manifest.json" ]; then
-    echo "Merging old .ryme/graph into .ryme-skill/graph in $root"
-    mkdir -p "$root/.ryme-skill/graph"
-    cp -r "$root/.ryme/graph"/* "$root/.ryme-skill/graph/" 2>/dev/null || true
-  fi
-  # Migrate old .rymeignore → .ryme-skillignore (keep both for compat)
-  if [ -f "$root/.rymeignore" ] && [ ! -f "$root/.ryme-skillignore" ]; then
-    cp "$root/.rymeignore" "$root/.ryme-skillignore" 2>/dev/null || true
-    echo "Copied .rymeignore → .ryme-skillignore in $root"
-  fi
-}
-
 if [[ $GLOBAL -eq 1 ]]; then
   install_global
   # also update local if this project already has a local install (symlink or copy exists)
@@ -153,7 +134,6 @@ if [[ $GLOBAL -eq 1 ]]; then
     echo "Detected existing local install in $_cur_root — updating it as well..."
     install_local
   fi
-  migrate_graph_path "$_cur_root"
 else
   install_local
   # also update global if it already exists (so both stay in sync)
@@ -162,9 +142,4 @@ else
     echo "Detected existing global install — updating it as well..."
     install_global
   fi
-  _cur_root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
-  migrate_graph_path "$_cur_root"
 fi
-
-# Final migration for skill source itself (if old .ryme still exists alongside new)
-migrate_graph_path "$ROOT"

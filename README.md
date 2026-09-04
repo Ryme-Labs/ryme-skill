@@ -16,6 +16,21 @@
 [![Node](https://img.shields.io/badge/node-%3E%3D18-green)](./package.json)
 [![Skills](https://img.shields.io/badge/skills-graphcontext%20%7C%20feature%20%7C%20build%20%7C%20refract-orange)](./SKILL.md)
 
+### ⚡ One-line Install (curl)
+
+```bash
+# Local (current project) — copies to ./.ryme-skills + links to .claude/.agents
+curl -fsSL https://raw.githubusercontent.com/Ryme-Labs/ryme-skill/main/install.sh | bash
+
+# Global (all projects) — installs to ~/.config/opencode/skills/
+curl -fsSL https://raw.githubusercontent.com/Ryme-Labs/ryme-skill/main/install.sh | bash -s -- --global
+
+# Or with wget
+wget -qO- https://raw.githubusercontent.com/Ryme-Labs/ryme-skill/main/install.sh | bash
+```
+
+> `install.sh` auto-detects existing installs and updates both global+local, migrates old `.ryme` → `.ryme-skill` graph path.
+
 ---
 
 ## Commands

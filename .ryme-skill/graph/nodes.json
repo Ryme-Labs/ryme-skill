@@ -1,0 +1,431 @@
+[
+  {
+    "file": "AGENTS.md",
+    "ext": ".md",
+    "lines": 47,
+    "hash": "036a7e911555",
+    "symbols": [],
+    "imports": [],
+    "exports": []
+  },
+  {
+    "file": "CLAUDE.md",
+    "ext": ".md",
+    "lines": 47,
+    "hash": "d73f6a8ea8bb",
+    "symbols": [],
+    "imports": [],
+    "exports": []
+  },
+  {
+    "file": "README.md",
+    "ext": ".md",
+    "lines": 130,
+    "hash": "dd379d39f3a7",
+    "symbols": [],
+    "imports": [],
+    "exports": []
+  },
+  {
+    "file": "SKILL.md",
+    "ext": ".md",
+    "lines": 206,
+    "hash": "b631ccb46a82",
+    "symbols": [],
+    "imports": [],
+    "exports": []
+  },
+  {
+    "file": "install.sh",
+    "ext": ".sh",
+    "lines": 129,
+    "hash": "5abddff07ee6",
+    "symbols": [],
+    "imports": [],
+    "exports": []
+  },
+  {
+    "file": "package.json",
+    "ext": ".json",
+    "lines": 37,
+    "hash": "8a13687cd471",
+    "symbols": [],
+    "imports": [],
+    "exports": []
+  },
+  {
+    "file": "templates/build-questions.md",
+    "ext": ".md",
+    "lines": 13,
+    "hash": "b13a22d2dfc6",
+    "symbols": [],
+    "imports": [],
+    "exports": []
+  },
+  {
+    "file": "templates/feature-questions.md",
+    "ext": ".md",
+    "lines": 31,
+    "hash": "67e7d374e38d",
+    "symbols": [],
+    "imports": [],
+    "exports": []
+  },
+  {
+    "file": "scripts/mcp-server.mjs",
+    "ext": ".mjs",
+    "lines": 253,
+    "hash": "a2dfd880f3c9",
+    "symbols": [
+      {
+        "kind": "function",
+        "name": "loadJson",
+        "line": 39
+      },
+      {
+        "kind": "function",
+        "name": "loadGraph",
+        "line": 43
+      },
+      {
+        "kind": "function",
+        "name": "toolQueryGraph",
+        "line": 101
+      },
+      {
+        "kind": "function",
+        "name": "toolGetNode",
+        "line": 122
+      },
+      {
+        "kind": "function",
+        "name": "toolGetCallers",
+        "line": 130
+      },
+      {
+        "kind": "function",
+        "name": "toolGetNeighbors",
+        "line": 147
+      },
+      {
+        "kind": "function",
+        "name": "toolShortestPath",
+        "line": 156
+      },
+      {
+        "kind": "function",
+        "name": "reply",
+        "line": 195
+      },
+      {
+        "kind": "function",
+        "name": "handle",
+        "line": 202
+      },
+      {
+        "kind": "function",
+        "name": "get",
+        "line": 34
+      }
+    ],
+    "imports": [
+      {
+        "from": "fs",
+        "line": 29,
+        "type": "import"
+      },
+      {
+        "from": "path",
+        "line": 31,
+        "type": "import"
+      }
+    ],
+    "exports": []
+  },
+  {
+    "file": "scripts/ryme-graph.mjs",
+    "ext": ".mjs",
+    "lines": 1156,
+    "hash": "5c7e7afaebef",
+    "symbols": [
+      {
+        "kind": "function",
+        "name": "help",
+        "line": 72
+      },
+      {
+        "kind": "function",
+        "name": "resolveRootOut",
+        "line": 91
+      },
+      {
+        "kind": "function",
+        "name": "loadGitignore",
+        "line": 101
+      },
+      {
+        "kind": "function",
+        "name": "ignoredByGitignore",
+        "line": 119
+      },
+      {
+        "kind": "function",
+        "name": "globToRegExp",
+        "line": 135
+      },
+      {
+        "kind": "function",
+        "name": "walk",
+        "line": 163
+      },
+      {
+        "kind": "function",
+        "name": "detectTechstack",
+        "line": 220
+      },
+      {
+        "kind": "function",
+        "name": "parseFile",
+        "line": 380
+      },
+      {
+        "kind": "function",
+        "name": "buildModules",
+        "line": 552
+      },
+      {
+        "kind": "function",
+        "name": "rankFiles",
+        "line": 609
+      },
+      {
+        "kind": "function",
+        "name": "generateContextMd",
+        "line": 628
+      },
+      {
+        "kind": "function",
+        "name": "buildGraph",
+        "line": 674
+      },
+      {
+        "kind": "function",
+        "name": "writeGraph",
+        "line": 742
+      },
+      {
+        "kind": "function",
+        "name": "incrementalUpdate",
+        "line": 807
+      },
+      {
+        "kind": "function",
+        "name": "fullInit",
+        "line": 895
+      },
+      {
+        "kind": "function",
+        "name": "loadGraph",
+        "line": 913
+      },
+      {
+        "kind": "function",
+        "name": "query",
+        "line": 928
+      },
+      {
+        "kind": "function",
+        "name": "callersOf",
+        "line": 965
+      },
+      {
+        "kind": "function",
+        "name": "importsFor",
+        "line": 1002
+      },
+      {
+        "kind": "function",
+        "name": "pathInfo",
+        "line": 1011
+      },
+      {
+        "kind": "function",
+        "name": "stats",
+        "line": 1036
+      },
+      {
+        "kind": "function",
+        "name": "verify",
+        "line": 1042
+      },
+      {
+        "kind": "function",
+        "name": "main",
+        "line": 1091
+      },
+      {
+        "kind": "function",
+        "name": "has",
+        "line": 68
+      },
+      {
+        "kind": "function",
+        "name": "get",
+        "line": 69
+      },
+      {
+        "kind": "function",
+        "name": "readJsonSafe",
+        "line": 223
+      },
+      {
+        "kind": "function",
+        "name": "exists",
+        "line": 229
+      },
+      {
+        "kind": "function",
+        "name": "depHas",
+        "line": 278
+      },
+      {
+        "kind": "function",
+        "name": "anyDepHas",
+        "line": 279
+      },
+      {
+        "kind": "function",
+        "name": "addSym",
+        "line": 388
+      },
+      {
+        "kind": "function",
+        "name": "lineOf",
+        "line": 398
+      },
+      {
+        "kind": "function",
+        "name": "writeJson",
+        "line": 748
+      }
+    ],
+    "imports": [
+      {
+        "from": "fs",
+        "line": 19,
+        "type": "import"
+      },
+      {
+        "from": "path",
+        "line": 21,
+        "type": "import"
+      },
+      {
+        "from": "crypto",
+        "line": 22,
+        "type": "import"
+      },
+      {
+        "from": "url",
+        "line": 23,
+        "type": "import"
+      }
+    ],
+    "exports": [
+      "addSym"
+    ]
+  },
+  {
+    "file": "refractor/SKILL.md",
+    "ext": ".md",
+    "lines": 338,
+    "hash": "65462d1c3fe7",
+    "symbols": [],
+    "imports": [],
+    "exports": []
+  },
+  {
+    "file": "refract/SKILL.md",
+    "ext": ".md",
+    "lines": 338,
+    "hash": "55cb9e6e3fc5",
+    "symbols": [],
+    "imports": [],
+    "exports": []
+  },
+  {
+    "file": "references/agent-protocol.md",
+    "ext": ".md",
+    "lines": 78,
+    "hash": "3be379e34996",
+    "symbols": [],
+    "imports": [],
+    "exports": []
+  },
+  {
+    "file": "references/graph-schema.md",
+    "ext": ".md",
+    "lines": 166,
+    "hash": "ae6db0659cb5",
+    "symbols": [],
+    "imports": [],
+    "exports": []
+  },
+  {
+    "file": "references/techstack-matrix.md",
+    "ext": ".md",
+    "lines": 103,
+    "hash": "57031c3ee635",
+    "symbols": [],
+    "imports": [],
+    "exports": []
+  },
+  {
+    "file": "refactor/SKILL.md",
+    "ext": ".md",
+    "lines": 338,
+    "hash": "9d2393aac9ac",
+    "symbols": [],
+    "imports": [],
+    "exports": []
+  },
+  {
+    "file": "graphcontext/SKILL.md",
+    "ext": ".md",
+    "lines": 188,
+    "hash": "ae1777662381",
+    "symbols": [],
+    "imports": [],
+    "exports": []
+  },
+  {
+    "file": "feature/SKILL.md",
+    "ext": ".md",
+    "lines": 328,
+    "hash": "e8d9ad89dcb6",
+    "symbols": [
+      {
+        "kind": "function",
+        "name": "formatDate",
+        "line": 253
+      }
+    ],
+    "imports": [],
+    "exports": []
+  },
+  {
+    "file": "build/SKILL.md",
+    "ext": ".md",
+    "lines": 274,
+    "hash": "e44382020132",
+    "symbols": [
+      {
+        "kind": "function",
+        "name": "formatDate",
+        "line": 181
+      }
+    ],
+    "imports": [],
+    "exports": []
+  }
+]

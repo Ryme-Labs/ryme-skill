@@ -1,0 +1,101 @@
+[
+  {
+    "name": "root",
+    "files": [
+      "AGENTS.md",
+      "CLAUDE.md",
+      "README.md",
+      "SKILL.md",
+      "install.sh",
+      "package.json"
+    ],
+    "fileCount": 6,
+    "dependencies": [],
+    "entry": "SKILL.md"
+  },
+  {
+    "name": "references",
+    "files": [
+      "references/agent-protocol.md",
+      "references/graph-schema.md",
+      "references/techstack-matrix.md"
+    ],
+    "fileCount": 3,
+    "dependencies": [],
+    "entry": "references/graph-schema.md"
+  },
+  {
+    "name": "templates",
+    "files": [
+      "templates/build-questions.md",
+      "templates/feature-questions.md"
+    ],
+    "fileCount": 2,
+    "dependencies": [],
+    "entry": "templates/build-questions.md"
+  },
+  {
+    "name": "scripts",
+    "files": [
+      "scripts/mcp-server.mjs",
+      "scripts/ryme-graph.mjs"
+    ],
+    "fileCount": 2,
+    "dependencies": [],
+    "entry": "scripts/mcp-server.mjs"
+  },
+  {
+    "name": "refractor",
+    "files": [
+      "refractor/SKILL.md"
+    ],
+    "fileCount": 1,
+    "dependencies": [],
+    "entry": "refractor/SKILL.md"
+  },
+  {
+    "name": "refract",
+    "files": [
+      "refract/SKILL.md"
+    ],
+    "fileCount": 1,
+    "dependencies": [],
+    "entry": "refract/SKILL.md"
+  },
+  {
+    "name": "refactor",
+    "files": [
+      "refactor/SKILL.md"
+    ],
+    "fileCount": 1,
+    "dependencies": [],
+    "entry": "refactor/SKILL.md"
+  },
+  {
+    "name": "graphcontext",
+    "files": [
+      "graphcontext/SKILL.md"
+    ],
+    "fileCount": 1,
+    "dependencies": [],
+    "entry": "graphcontext/SKILL.md"
+  },
+  {
+    "name": "feature",
+    "files": [
+      "feature/SKILL.md"
+    ],
+    "fileCount": 1,
+    "dependencies": [],
+    "entry": "feature/SKILL.md"
+  },
+  {
+    "name": "build",
+    "files": [
+      "build/SKILL.md"
+    ],
+    "fileCount": 1,
+    "dependencies": [],
+    "entry": "build/SKILL.md"
+  }
+]

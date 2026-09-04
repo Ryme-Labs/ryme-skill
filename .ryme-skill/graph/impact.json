@@ -1,0 +1,27 @@
+{
+  "generatedAt": "2026-09-04T12:56:59.055Z",
+  "orphans": [
+    "AGENTS.md",
+    "CLAUDE.md",
+    "README.md",
+    "SKILL.md",
+    "install.sh",
+    "package.json",
+    "templates/build-questions.md",
+    "templates/feature-questions.md",
+    "scripts/mcp-server.mjs",
+    "scripts/ryme-graph.mjs",
+    "refractor/SKILL.md",
+    "refract/SKILL.md",
+    "references/agent-protocol.md",
+    "references/graph-schema.md",
+    "references/techstack-matrix.md",
+    "refactor/SKILL.md",
+    "graphcontext/SKILL.md",
+    "feature/SKILL.md",
+    "build/SKILL.md"
+  ],
+  "hubs": [],
+  "mostConnectedModule": "root",
+  "notes": "orphans = zero fan-in (maybe leaf/entry). hubs = high fan-in (change with care)."
+}

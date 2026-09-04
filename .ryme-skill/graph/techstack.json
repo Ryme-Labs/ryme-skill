@@ -1,0 +1,12 @@
+{
+  "primary": "JavaScript",
+  "languages": {
+    "JavaScript": 2
+  },
+  "frameworks": [],
+  "databases": [],
+  "orm": [],
+  "infra": [],
+  "signals": [],
+  "confidence": 0.35
+}

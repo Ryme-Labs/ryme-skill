@@ -1,0 +1,29 @@
+{
+  "version": "1.0.0",
+  "createdAt": "2026-09-04T12:44:09.077Z",
+  "techstack": {
+    "primary": "JavaScript",
+    "languages": {
+      "JavaScript": 2
+    },
+    "frameworks": [],
+    "databases": [],
+    "orm": [],
+    "infra": [],
+    "signals": [],
+    "confidence": 0.35
+  },
+  "outDir": ".ryme/graph",
+  "ignore": [
+    "node_modules",
+    ".git",
+    ".hg",
+    ".svn",
+    "dist",
+    "build",
+    ".next",
+    ".nuxt",
+    ".output",
+    "coverage"
+  ]
+}

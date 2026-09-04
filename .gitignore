@@ -1,0 +1,11 @@
+.ryme-skill/*
+!.ryme-skill/graph/
+!.ryme-skill/graph/**
+!.ryme-skill/config.json
+# legacy (old path) — keep ignored if someone still has .ryme
+.ryme/*
+!.ryme/graph/
+!.ryme/graph/**
+!.ryme/config.json
+node_modules/
+.DS_Store

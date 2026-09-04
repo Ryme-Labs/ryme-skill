@@ -1,0 +1,73 @@
+{
+  "name": "@rymelabs/ryme-context-graph",
+  "version": "1.0.0",
+  "description": "Production-grade Context Graph for AI agents — any stack, any agent. Commands: /graphcontext · /feature · /build · /refract",
+  "type": "module",
+  "bin": {
+    "ryme-graph": "./scripts/ryme-graph.mjs"
+  },
+  "scripts": {
+    "graph": "node ./scripts/ryme-graph.mjs --update --out .ryme-skill/graph",
+    "graph:init": "node ./scripts/ryme-graph.mjs --init --out .ryme-skill/graph",
+    "graph:detect": "node ./scripts/ryme-graph.mjs --detect",
+    "graph:verify": "node ./scripts/ryme-graph.mjs --verify --out .ryme-skill/graph",
+    "graph:stats": "node ./scripts/ryme-graph.mjs --stats --out .ryme-skill/graph"
+  },
+  "keywords": [
+    "context-graph",
+    "codebase-intelligence",
+    "repository-intelligence",
+    "repository-understanding",
+    "repo-grokking",
+    "code-graph",
+    "code-knowledge-graph",
+    "knowledge-graph",
+    "ast",
+    "tree-sitter",
+    "repo-map",
+    "ai-agents",
+    "agentic-coding",
+    "coding-agents",
+    "ai-coding-agents",
+    "claude-code",
+    "opencode",
+    "cursor",
+    "windsurf",
+    "copilot",
+    "codex",
+    "gemini",
+    "mcp",
+    "mcp-server",
+    "model-context-protocol",
+    "llm-tools",
+    "vibe-coding",
+    "multi-agent",
+    "agent-teams",
+    "self-hosted",
+    "open-source",
+    "developer-tools",
+    "semantic-search",
+    "vector-embeddings",
+    "rag",
+    "precomputed-context",
+    "graph-navigation",
+    "shadow-tech-debt",
+    "nextjs",
+    "supabase",
+    "prisma",
+    "drizzle",
+    "typescript",
+    "python",
+    "go",
+    "rust"
+  ],
+  "author": "Ryme Labs",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/RymeLabs/ryme-skills"
+  }
+}

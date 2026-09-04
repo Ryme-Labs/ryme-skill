@@ -1,0 +1,27 @@
+# .rymeignore — extra ignores beyond .gitignore for the Context Graph
+# Add patterns here that should never be indexed, even if not gitignored.
+
+# generated / ephemeral
+.ryme/
+.opencode/
+.claude/
+.agents/
+.cursor/
+.windsurf/
+.codex/
+dist/
+# build/ — removed: collides with /build skill folder. Build artifacts are usually .gitignored anyway.
+# If you need to ignore a real build artifact dir, add `build/` to your .gitignore instead.
+.next/
+.nuxt/
+.output/
+storybook-static/
+
+# large test fixtures / snapshots
+__snapshots__/
+*.snap
+coverage/
+
+# vendor / lock extras (already hard-ignored, listed for doc)
+# vendor/
+# node_modules/

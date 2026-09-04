@@ -1,0 +1,18 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  // Add to your project's opencode.jsonc / opencode.json
+  "skills": {
+    "paths": [
+      "./.ryme-skills",
+      "./ryme-skills"
+    ]
+  },
+  // Optional: if you keep the skill outside the repo, point to the global install:
+  // "skills": {
+  //   "paths": ["~/Rymelabs/ryme-skills"]
+  // }
+
+  // Model / provider — keep your own, this is just an example
+  // "model": "anthropic/claude-sonnet-4",
+  // "provider": { ... }
+}

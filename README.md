@@ -1,6 +1,6 @@
 # ryme-skill
 
-# Ryme Context Graph — Production-Grade Codebase Intelligence
+# Ryme Context Graph — Production-Grade Codebase Intelligence (was private initially)
 
 > One graph to rule all agents. Index once, reason forever.
 

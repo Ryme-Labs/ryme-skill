@@ -144,7 +144,7 @@ When building or implementing a feature you don't know, **search first**. The sk
 
 ## License
 
-MIT — see `LICENSE` (add one). Built for [Ryme Labs](https://ryme.app).
+MIT — see `LICENSE` (add one). Built for [Ryme Labs](https://rymelabs.dev).
 
 ---
 

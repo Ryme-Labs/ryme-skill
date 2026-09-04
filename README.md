@@ -29,7 +29,7 @@ curl -fsSL https://raw.githubusercontent.com/Ryme-Labs/ryme-skill/main/install.s
 wget -qO- https://raw.githubusercontent.com/Ryme-Labs/ryme-skill/main/install.sh | bash
 ```
 
-> `install.sh` auto-detects existing installs and updates both global+local, migrates old `.ryme` → `.ryme-skill` graph path.
+> `install.sh` auto-detects existing installs and updates both global+local.
 
 ---
 

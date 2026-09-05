@@ -8,6 +8,8 @@ description: |
 
 > Refactor without a map is vandalism. Refactor without a loop is half-done. This skill reads `impact.json`, hunts real debt, and ships staged parallel moves until the graph says healthy.
 
+> **Stuck? Quick recovery:** If `pnpm build` or `node --verify` hangs, `timeout 60` it and check `cat .ryme-skill/tmp/verify-stage-*.log | tail`. If a subagent hangs >90s, main continues. If no progress in 2 rounds, escalate to `BLOCKED`. For a quick run, do single stage (R2,R5) then `git diff` manually — don't run full swarm.
+
 Aliases: `/refract`, `/refactor`, `/refractor`, `/reorganize` — all same skill. (Folder `refract` is canonical; `refactor`/`refractor` are symlinks.)
 
 ## Preconditions
@@ -15,7 +17,7 @@ Aliases: `/refract`, `/refactor`, `/refractor`, `/reorganize` — all same skill
 ```bash
 # find indexer — ALWAYS prefers project-local copy (no external access needed)
 # Graph itself is ALWAYS in the working directory: ./.ryme-skill/graph (not in the skill dir)
-IDX=""
+  IDX=""
 for p in \
   "./.ryme-skills/scripts/ryme-graph.mjs" \
   "./ryme-skills/scripts/ryme-graph.mjs" \
@@ -32,7 +34,8 @@ done
 if [ -z "$IDX" ]; then IDX=$(find . -maxdepth 4 -name "ryme-graph.mjs" -type f 2>/dev/null | head -1); fi
 echo "IDX=$IDX (graph in working dir: ./.ryme-skill/graph)"
 ls -la "$IDX" 2>&1 | head -1
-mkdir -p .ryme-skill/graphif [ ! -f .ryme-skill/graph/context.md ]; then
+mkdir -p .ryme-skill/graph
+if [ ! -f .ryme-skill/graph/context.md ]; then
   echo "No graph — building..."
   node "$IDX" --init --root . --out .ryme-skill/graph 2>&1 | tail -n 20
 else
@@ -152,43 +155,46 @@ Wait before editing. One-way moves require explicit approval.
 
 This is the loop that makes `/refract` production-grade. It executes **stage by stage**, each stage via **parallel subagents (one per ledger item)**, and **loops over stages until `verify` is healthy** or `MAX_ROUNDS` hit.
 
-### Loop state
+### Loop state (file-based, not bash vars)
 
 ```bash
-mkdir -p .ryme-skill/loops
+mkdir -p .ryme-skill/loops .ryme-skill/tmp
 LOOP_ID="refract-$(date +%Y%m%d)-$(date +%s)"
 LOOP_LOG=".ryme-skill/loops/$LOOP_ID.jsonl"
-STAGE=0; ROUND=0; MAX_ROUNDS=3
+echo "$LOOP_ID" > .ryme-skill/tmp/current_refract_loop
+echo "0" > .ryme-skill/tmp/current_refract_round
+echo "0" > .ryme-skill/tmp/current_refract_stage
 echo "{\"round\":0,\"stage\":0,\"plan\":\".ryme-skill/specs/_refract-<date>.md\",\"status\":\"started\",\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > "$LOOP_LOG"
+echo "LOOP_ID=$LOOP_ID"
+MAX_ROUNDS=3
 ```
 
 The outer loop is over **rounds** (full pass over stages). Inner loop is over **stages** (each stage is parallel swarm). We iterate rounds until ledger drained + verify healthy.
 
-### Outer loop — while not healthy
+### Outer loop — while not healthy (LLM-driven, not bash `while true` — see stuck prevention)
 
 ```bash
-while true; do
-  ROUND=$((ROUND+1))
-  echo "== REFRACT ROUND $ROUND ==" | tee -a "$LOOP_LOG"
-
-  # re-diagnose at round start (graph is fresh from last stage)
-  mkdir -p .ryme-skill/tmp && node "$IDX" --verify --out .ryme-skill/graph 2>&1 | tee .ryme-skill/tmp/verify-round-$ROUND.log
-  # check healthy?
-  if grep -q "Healthy.*no major issues" .ryme-skill/tmp/verify-round-$ROUND.log; then
-    echo "Healthy — done in $ROUND rounds" | tee -a "$LOOP_LOG"
-    break
-  fi
+# LLM main agent does iterative rounds, not a bash infinite loop:
+# Each round: re-diagnose, check healthy, if not then spawn next stage swarm.
+# Use file-based ROUND counter so it survives across turns:
+ROUND=$(cat .ryme-skill/tmp/current_refract_round 2>/dev/null || echo 0)
+ROUND=$((ROUND+1))
+echo "$ROUND" > .ryme-skill/tmp/current_refract_round
+echo "== REFRACT ROUND $ROUND ==" | tee -a "$LOOP_LOG"
+mkdir -p .ryme-skill/tmp && timeout 60 node "$IDX" --verify --out .ryme-skill/graph 2>&1 | tee .ryme-skill/tmp/verify-round-$ROUND.log
+if grep -q "Healthy.*no major issues" .ryme-skill/tmp/verify-round-$ROUND.log; then
+  echo "Healthy — done in $ROUND rounds" | tee -a "$LOOP_LOG"
+  # break out of outer loop — go to Phase 4
+else
   if [ "$ROUND" -gt "$MAX_ROUNDS" ]; then
     echo "BLOCKED after $MAX_ROUNDS rounds — still not healthy" | tee -a "$LOOP_LOG"
-    break
+    # break out — go to BLOCKED handling in Phase 4
   fi
-
-  # re-build ledger from fresh graph for remaining debt (delta)
-  # (main agent: grep dups, huge, orphans again, filter out already-shipped R* from LOOP_LOG)
-done
+fi
+# re-build ledger from fresh graph for remaining debt (delta) — main agent: grep dups, huge, orphans, filter shipped R* from LOOP_LOG
 ```
 
-In practice the LLM main agent does the "while" as iterative Task orchestration (not bash while) — each round the main agent decides to spawn next stage swarm.
+> **Stuck prevention:** Never run `while true; do ... done` as a single bash command — it will hang. Instead, do one round per LLM turn, check `LOOP_LOG`, and decide to continue or stop. If `verify-round` log is identical for 2 rounds, escalate to `BLOCKED`.
 
 ### Inner loop — per stage swarm (parallel)
 
@@ -214,6 +220,7 @@ Task({
 })
 
 Task({
+  command: "refract R5 — dedup formatDate for $LOOP_ID",
   description: "refract R5 — dedup formatDate",
   prompt: `You are R5 — dedup formatDate.
    Canonical file is highest fan-in: check cat .ryme-skill/graph/ranked.json | grep formatDate or nodes.json counts.
@@ -239,7 +246,7 @@ Task({
    - Update all import edges in same slice (grep old path, fix each)
    - Preserve behavior
 5. Update graph: node $IDX --update --root . --out .ryme-skill/graph
-6. Verify slice: node $IDX --verify --out .ryme-skill/graph 2>&1 | head -n 40; pnpm build 2>&1 | tail -n 20
+6. Verify slice: timeout 60 node $IDX --verify --out .ryme-skill/graph 2>&1 | head -n 40; timeout 60 pnpm build 2>&1 | tail -n 20
 ```
 
 **Main agent collects after stage swarm:**
@@ -249,9 +256,9 @@ Task({
 node "$IDX" --update --root . --out .ryme-skill/graph 2>&1 | tail -n 5
 mkdir -p .ryme-skill/tmp && node "$IDX" --verify --out .ryme-skill/graph 2>&1 | tee .ryme-skill/tmp/verify-stage-$STAGE.log
 # build gate
-mkdir -p .ryme-skill/tmp && pnpm build 2>&1 | tail -n 20 | tee .ryme-skill/tmp/build-stage-$STAGE.log || mkdir -p .ryme-skill/tmp && npm run build 2>&1 | tail -n 20 | tee .ryme-skill/tmp/build-stage-$STAGE.log || true
+mkdir -p .ryme-skill/tmp && timeout 60 pnpm build 2>&1 | tail -n 20 | tee .ryme-skill/tmp/build-stage-$STAGE.log || mkdir -p .ryme-skill/tmp && timeout 60 npm run build 2>&1 | tail -n 20 | tee .ryme-skill/tmp/build-stage-$STAGE.log || true
 # test gate
-mkdir -p .ryme-skill/tmp && pnpm test 2>&1 | tail -n 40 | tee .ryme-skill/tmp/test-stage-$STAGE.log || npm test 2>&1 | tail -n 40 | tee .ryme-skill/tmp/test-stage-$STAGE.log || echo "no tests"
+mkdir -p .ryme-skill/tmp && timeout 60 pnpm test 2>&1 | tail -n 40 | tee .ryme-skill/tmp/test-stage-$STAGE.log || timeout 60 npm test 2>&1 | tail -n 40 | tee .ryme-skill/tmp/test-stage-$STAGE.log || echo "no tests"
 # check for stale imports
 grep -R "from.*old/path" src/ 2>&1 | head -n 20 && echo "STALE IMPORTS FOUND — fixing before next stage" || echo "no stales"
 ```

@@ -8,6 +8,8 @@ description: |
 
 > Prompt → spec → swarm → shipped. The graph tells agents what exists, the loop tells them when they're done.
 
+> **Stuck? Quick recovery:** If you feel stuck on questions, use `Recommended` defaults and continue — don't wait forever. If the swarm loop hangs, check `cat .ryme-skill/loops/*.jsonl | tail` and `cat .ryme-skill/tmp/verify.log | tail -n 20` — if no progress in 2 iters, escalate to `BLOCKED` with `REASON`. Each subagent has 90s timeout; main loop has 5 iters max. For a quick run without swarm, do spec-only (`--spec-only`) and implement manually.
+
 ## Preconditions
 
 - `.ryme-skill/graph/context.md` must exist and be fresh **in the working directory** (project root, not skill dir). If not:
@@ -15,7 +17,7 @@ description: |
   ```bash
   # find indexer — ALWAYS prefers project-local copy (no external access needed)
 # Graph itself is ALWAYS in the working directory: ./.ryme-skill/graph (not in the skill dir)
-IDX=""
+  IDX=""
 for p in \
   "./.ryme-skills/scripts/ryme-graph.mjs" \
   "./ryme-skills/scripts/ryme-graph.mjs" \
@@ -32,7 +34,8 @@ done
 if [ -z "$IDX" ]; then IDX=$(find . -maxdepth 4 -name "ryme-graph.mjs" -type f 2>/dev/null | head -1); fi
 echo "IDX=$IDX (graph in working dir: ./.ryme-skill/graph)"
 ls -la "$IDX" 2>&1 | head -1
-mkdir -p .ryme-skill/graph  ```
+mkdir -p .ryme-skill/graph
+```
 
 - Load the graph (mandatory):
 
@@ -62,7 +65,7 @@ Run BEFORE you ask the user anything:
 ```bash
 # find indexer — ALWAYS prefers project-local copy (no external access needed)
 # Graph itself is ALWAYS in the working directory: ./.ryme-skill/graph (not in the skill dir)
-IDX=""
+  IDX=""
 for p in \
   "./.ryme-skills/scripts/ryme-graph.mjs" \
   "./ryme-skills/scripts/ryme-graph.mjs" \
@@ -102,9 +105,15 @@ Record:
 
 Cite these in every recommendation.
 
-## Phase 2 — The 8 Discovery Questions
+## Phase 2 — The 8 Discovery Questions (with stuck prevention)
 
 Ask exactly 8 (or fewer if prompt/graph already answered). Each has 2–3 recommendation options grounded in graph+web (label Recommended) + "Why it matters". Sequential via `AskUserQuestion` (or prose fallback). Wait per answer.
+
+- If `AskUserQuestion` is not available (no tool, or returns `BLOCKED`), fallback to prose brief and proceed after 30s.
+- If user doesn't answer within 60s, use **Recommended** option as default (cite graph/web) and note `auto-chosen: <reason>` in spec, then continue to next question. Do not get stuck on one question.
+- If the prompt already answers a question, confirm quickly and move on — don't re-ask.
+- Batch independent questions when possible (e.g., Q1 Goal + Q4 Scope can be asked together if prompt is vague).
+- Max 3 minutes for all 8 questions — if still not done, synthesize from prompt+graph and move to Phase 3.
 
 ### Q1 — Goal (what does the user get?)
 `What is the user-visible goal? What does a user gain that they could not do before?`
@@ -194,19 +203,28 @@ Done. Next: agent reads spec + graph, then `Read → Search graph → Edit → -
 
 This is the loop the user asked for. It runs **until the Acceptance demo passes** or `MAX_ITERS` (default 5) is hit. Each iteration spawns **many parallel subagents** via `Task`.
 
-### Loop state (track in memory + on disk)
+### Loop state (track on disk — bash vars don't persist across turns, use files)
 
 ```bash
-mkdir -p .ryme-skill/loops
+mkdir -p .ryme-skill/loops .ryme-skill/tmp
 LOOP_ID="feature-<slug>-$(date +%s)"
 LOOP_LOG=".ryme-skill/loops/$LOOP_ID.jsonl"
+echo "$LOOP_ID" > .ryme-skill/tmp/current_feature_loop
+echo "0" > .ryme-skill/tmp/current_feature_iter
 echo "{\"iter\":0,\"slug\":\"<slug>\",\"status\":\"started\",\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > "$LOOP_LOG"
+echo "LOOP_ID=$LOOP_ID"
+cat "$LOOP_LOG"
 ```
 
-### Iteration recipe (repeat until `goalAchieved == true`)
+> **Stuck prevention:** If this loop runs >5 min without progress, check `cat .ryme-skill/tmp/current_feature_iter` and `cat .ryme-skill/loops/$LOOP_ID.jsonl | tail`. If `ITER` hasn't advanced in 2 rounds, escalate to `BLOCKED`.
+
+### Iteration recipe (repeat until `goalAchieved == true` — use file-based ITER, not bash var)
 
 ```bash
-# 0) refresh graph (so subagents see latest)
+# 0) refresh graph (so subagents see latest) — read ITER from file
+ITER=$(cat .ryme-skill/tmp/current_feature_iter 2>/dev/null || echo 0)
+echo "Starting iteration $ITER for $LOOP_ID"
+mkdir -p .ryme-skill/tmp
 node "$IDX" --update --root . --out .ryme-skill/graph 2>&1 | tail -n 5
 ```
 
@@ -221,26 +239,34 @@ Examples for chat:
 
 Each slice lists: files to create/edit, reuse file:line to import from, acceptance check.
 
-**2) Spawn swarm** — launch one subagent per slice **in parallel** via `Task`:
+**2) Spawn swarm** — launch one subagent per slice **in parallel** via `Task` (must include `command`):
 
 ```js
-// pseudocode — use your Task tool
+// Use Task tool — each call spawns one subagent. Do all 3-5 in same turn for parallelism.
+// Required fields: command, description, prompt, subagent_type
 Task({
+  command: "feature slice A — schema for <slug>",
   description: "feature slice A — schema",
-  prompt: `You are slice A of feature <slug>. 
-   Spec: .ryme-skill/specs/<slug>.md §2,6,7
-   Graph: Read .ryme-skill/graph/context.md + .ryme-skill/graph/modules.json
-   Your slice: DB migration + schema (see slice A files)
-   Rules: BEFORE creating any symbol, run node $IDX --query "<name>" and Grep nodes.json. Reuse file:line if exists. After edits run node $IDX --update --out .ryme-skill/graph
-   Web: If you need Stripe/Prisma/Supabase API shapes, WebFetch official docs first.
-   Deliverable: files written, 1-line summary, verification cmd output.
-   `,
+  prompt: `You are slice A of feature <slug> (loop $LOOP_ID, iter $ITER).
+   Spec: .ryme-skill/specs/<slug>.md §2,6,7 — read it fully.
+   Graph: Read .ryme-skill/graph/context.md + .ryme-skill/graph/modules.json (in working dir ./.ryme-skill/graph)
+   Your slice: DB migration + schema (see slice A files: <list>)
+   Rules: BEFORE creating any symbol, run node $IDX --query "<name>" --out .ryme-skill/graph and Grep .ryme-skill/graph/nodes.json. Reuse file:line if exists. After edits run node $IDX --update --root . --out .ryme-skill/graph
+   Web: If you need Stripe/Prisma/Supabase API shapes, WebFetch official docs first — never hallucinate.
+   Deliverable: files written + 1-line summary + verification (node --verify output). Keep it to max 60s.
+   If stuck >90s, exit with partial + reason.`,
   subagent_type: "general"
 })
-// repeat for slices B-E, all in parallel (one Task call per slice in same turn)
+// repeat for slices B-E, all in parallel (one Task call per slice in SAME turn — do not wait between)
+Task({
+  command: "feature slice B — api routes",
+  description: "feature slice B — api",
+  prompt: `You are slice B of feature <slug> (loop $LOOP_ID)... Your slice: api/routes + validation...`,
+  subagent_type: "general"
+})
 ```
 
-Use `general` for complex slices (multi-file, needs graph reasoning), `explore` for quick recon slices. Max 5 concurrent subagents per iteration (rate limit).
+Use `general` for complex slices (multi-file, needs graph reasoning), `explore` for quick recon slices. Max 3 concurrent subagents per iteration (not 5 — prevents overload). Each subagent has 90s timeout — if it hangs, main agent continues with what succeeded. **Do not spawn more than 3 at once; if you have 5 slices, do 3 then 2.**
 
 **3) Collect & integrate** — wait for all subagents:
 
@@ -252,15 +278,15 @@ cat .ryme-skill/graph/manifest.json | head -n 10
 
 Resolve conflicts: if two slices edited same file, main agent merges (prefer slice with higher fan-in reuse). De-dupe: `grep -r "function formatDate" src/` → if 2 copies, keep canonical (higher fan-in) and repatch callers.
 
-**4) Verify** — the gate that decides loop exit:
+**4) Verify** — the gate that decides loop exit (with timeouts):
 
 ```bash
 # graph health
-mkdir -p .ryme-skill/tmp && node "$IDX" --verify --out .ryme-skill/graph 2>&1 | tee .ryme-skill/tmp/verify.log
-# stack build
-pnpm build 2>&1 | tail -n 40 || npm run build 2>&1 | tail -n 40 || bun run build 2>&1 | tail -n 40 || echo "no build script — skipping"
+mkdir -p .ryme-skill/tmp && timeout 60 node "$IDX" --verify --out .ryme-skill/graph 2>&1 | tee .ryme-skill/tmp/verify.log
+# stack build (timeout 60 to avoid hang)
+timeout 60 pnpm build 2>&1 | tail -n 40 || timeout 60 npm run build 2>&1 | tail -n 40 || timeout 60 bun run build 2>&1 | tail -n 40 || echo "no build script — skipping"
 # tests (minimum: the acceptance test from spec §8)
-pnpm test 2>&1 | tail -n 60 || npm test 2>&1 | tail -n 60 || bun test 2>&1 | tail -n 60 || echo "no test script"
+timeout 60 pnpm test 2>&1 | tail -n 60 || timeout 60 npm test 2>&1 | tail -n 60 || timeout 60 bun test 2>&1 | tail -n 60 || echo "no test script"
 # demo script from spec §8 — run manually or via subagent
 cat .ryme-skill/specs/<slug>.md | grep -A 20 "## 8. Acceptance"
 ```
@@ -273,15 +299,20 @@ cat .ryme-skill/specs/<slug>.md | grep -A 20 "## 8. Acceptance"
 Append to loop log:
 
 ```bash
+ITER=$(cat .ryme-skill/tmp/current_feature_iter 2>/dev/null || echo 0)
 ITER=$((ITER+1))
-echo "{\"iter\":$ITER,\"verify\":\"$(cat .ryme-skill/tmp/verify.log | head -c 200)\",\"build\":\"$BUILD_STATUS\",\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" >> "$LOOP_LOG"
+echo "$ITER" > .ryme-skill/tmp/current_feature_iter
+BUILD_STATUS=$(cat .ryme-skill/tmp/build.status 2>/dev/null || echo "unknown")
+echo "{\"iter\":$ITER,\"verify\":\"$(cat .ryme-skill/tmp/verify.log 2>/dev/null | head -c 200 | tr -d '"' | tr '\n' ' ')\",\"build\":\"$BUILD_STATUS\",\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" >> "$LOOP_LOG"
+cat "$LOOP_LOG" | tail -n 5
 ```
 
-**5) Decide:**
+**5) Decide (with stuck detection):**
 
 - If achieved → break, go to Phase 5 (handoff)
-- Else if `ITER >= MAX_ITERS` (5) → `BLOCKED`: print `LOOP_LOG`, `REASON`, `ATTEMPTED`, `RECOMMENDATION` (per Completion Status Protocol), ask user to narrow scope or approve manual fix
-- Else → **iterate**: main agent synthesizes failure reasons (from verify/build/test logs), re-plans slices for next iter (focus on failing slice), loop back to (1). Do not repeat successful slices.
+- Else if `ITER >= 5` → `BLOCKED`: print `LOOP_LOG`, `REASON`, `ATTEMPTED`, `RECOMMENDATION` (per Completion Status Protocol), ask user to narrow scope or approve manual fix
+- Else if last 2 iters had identical `verify.log` (no progress) → `BLOCKED` with `REASON: no progress in 2 iters`
+- Else → **iterate**: main agent synthesizes failure reasons (from verify/build/test logs), re-plans slices for next iter (focus on failing slice only), loop back to (1). Do not repeat successful slices. **Sleep 1s between iters to avoid hot loop.**
 
 ### Loop guarantees
 

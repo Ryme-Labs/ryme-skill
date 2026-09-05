@@ -8,6 +8,8 @@ description: |
 
 > You are a production-grade application engineer. You do not produce toy starters. Every build has auth, DB, graph, and a deploy path before you call it "done" — and you loop with a swarm until it is green.
 
+> **Stuck? Quick recovery:** If `npx create-next-app` hangs, use `timeout 60` or skip to manual `mkdir src`. If discovery questions stall, use `Recommended` defaults. If swarm hangs, check `cat .ryme-skill/loops/build-*.jsonl | tail` — if no progress, escalate. Each subagent 90s timeout, main loop 5 iters max. For quick scaffold without swarm, do single-pass then `pnpm build` manually.
+
 ## Preconditions
 
 - This is **greenfield**. If `.ryme-skill/graph/` already exists with >10 files, confirm:
@@ -21,7 +23,7 @@ description: |
   ```bash
   # find indexer — ALWAYS prefers project-local copy (no external access needed)
 # Graph itself is ALWAYS in the working directory: ./.ryme-skill/graph (not in the skill dir)
-IDX=""
+  IDX=""
 for p in \
   "./.ryme-skills/scripts/ryme-graph.mjs" \
   "./ryme-skills/scripts/ryme-graph.mjs" \
@@ -39,6 +41,8 @@ if [ -z "$IDX" ]; then IDX=$(find . -maxdepth 4 -name "ryme-graph.mjs" -type f 2
 echo "IDX=$IDX (graph in working dir: ./.ryme-skill/graph)"
 ls -la "$IDX" 2>&1 | head -1
 mkdir -p .ryme-skill/graph
+  ```
+
 ## Input
 
 ```
@@ -72,7 +76,7 @@ Then continue with 8 feature Qs, interpreted for greenfield:
 - **Dependencies (Q5):** "What external services from day one?" (Stripe, Resend, Supabase Realtime…)
 - **Acceptance (Q7):** For new project, acceptance = `pnpm build && pnpm test` green + seed demo account works.
 
-All 11 follow `/feature` contract: Recommended with evidence (web link/template rationale), Why-it-matters, wait before next. Shortcut: if prompt already answers, confirm: "Got it — stack is Next.js+Supabase (from prompt). Keep it?"
+All 11 follow `/feature` contract: Recommended with evidence (web link/template rationale), Why-it-matters, wait before next (but **never wait forever** — if no answer in 60s, use Recommended and note `auto-chosen`, continue. Max 3 min for all 11, then synthesize from prompt+graph). Shortcut: if prompt already answers, confirm: "Got it — stack is Next.js+Supabase (from prompt). Keep it?"
 
 ## Phase 2 — Blueprint (before you write files)
 
@@ -109,14 +113,17 @@ Show to user: `Blueprint is at .ryme-skill/specs/_build-<slug>.md. Scaffold as d
 
 This replaces the old single-pass scaffold. It loops with **parallel subagents** until `verify + build + test` are green.
 
-### Loop state
+### Loop state (file-based, not bash vars)
 
 ```bash
-mkdir -p .ryme-skill/loops
+mkdir -p .ryme-skill/loops .ryme-skill/tmp
 LOOP_ID="build-<slug>-$(date +%s)"
 LOOP_LOG=".ryme-skill/loops/$LOOP_ID.jsonl"
+echo "$LOOP_ID" > .ryme-skill/tmp/current_build_loop
+echo "0" > .ryme-skill/tmp/current_build_iter
 echo "{\"iter\":0,\"slug\":\"<slug>\",\"stack\":\"<stack>\",\"status\":\"started\",\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > "$LOOP_LOG"
-ITER=0; MAX_ITERS=5
+echo "LOOP_ID=$LOOP_ID"
+MAX_ITERS=5
 ```
 
 ### Iteration recipe (repeat until `goalAchieved`)
@@ -158,6 +165,7 @@ Each slice: files list, purpose, reuse file:line (usually none for greenfield, b
 
 ```js
 Task({
+  command: "build slice B — db for <slug>",
   description: "build slice B — db",
   prompt: `You are slice B of build <slug>.
    Blueprint: .ryme-skill/specs/_build-<slug>.md (Modules + Schema)
@@ -172,7 +180,7 @@ Task({
 // repeat for slices A-F in parallel
 ```
 
-Use `general` for complex slices, `explore` for recon/tooling. Max 5 concurrent per iter.
+Use `general` for complex slices, `explore` for recon/tooling. Max 3 concurrent per iteration (not 5). Each subagent 90s timeout — if hangs, main continues.
 
 **3) Collect & integrate** — wait for all subagents, then main agent:
 
@@ -188,27 +196,32 @@ cat .ryme-skill/graph/context.md | head -n 60
 ```bash
 mkdir -p .ryme-skill/tmp && node "$IDX" --verify --out .ryme-skill/graph 2>&1 | tee .ryme-skill/tmp/verify.log
 pnpm install 2>&1 | tail -n 20 || npm install 2>&1 | tail -n 20 || bun install 2>&1 | tail -n 20 || true
-mkdir -p .ryme-skill/tmp && pnpm build 2>&1 | tail -n 60 | tee .ryme-skill/tmp/build.log || mkdir -p .ryme-skill/tmp && npm run build 2>&1 | tail -n 60 | tee .ryme-skill/tmp/build.log || mkdir -p .ryme-skill/tmp && bun run build 2>&1 | tail -n 60 | tee .ryme-skill/tmp/build.log || echo "no build"
-mkdir -p .ryme-skill/tmp && pnpm test 2>&1 | tail -n 60 | tee .ryme-skill/tmp/test.log || npm test 2>&1 | tail -n 60 | tee .ryme-skill/tmp/test.log || echo "no tests"
+mkdir -p .ryme-skill/tmp && timeout 60 pnpm build 2>&1 | tail -n 60 | tee .ryme-skill/tmp/build.log || mkdir -p .ryme-skill/tmp && timeout 60 npm run build 2>&1 | tail -n 60 | tee .ryme-skill/tmp/build.log || mkdir -p .ryme-skill/tmp && timeout 60 bun run build 2>&1 | tail -n 60 | tee .ryme-skill/tmp/build.log || echo "no build"
+mkdir -p .ryme-skill/tmp && timeout 60 pnpm test 2>&1 | tail -n 60 | tee .ryme-skill/tmp/test.log || timeout 60 npm test 2>&1 | tail -n 60 | tee .ryme-skill/tmp/test.log || echo "no tests"
 cat .ryme-skill/specs/_build-<slug>.md | grep -A 20 "## Acceptance"
 ```
 
 `goalAchieved = true` iff `build` green && `verify` has no new errors vs baseline (or `healthy`) && demo steps (seed user → dashboard → core feature) would pass (subagents reported).
 
-Append to log:
+Append to log (file-based ITER):
 
 ```bash
+ITER=$(cat .ryme-skill/tmp/current_build_iter 2>/dev/null || echo 0)
 ITER=$((ITER+1))
-echo "{\"iter\":$ITER,\"build\":\"$BUILD_STATUS\",\"verify\":\"$(head -c 200 .ryme-skill/tmp/verify.log)\",\"files\":$(cat .ryme-skill/graph/manifest.json | grep fileCount | grep -o '[0-9]*'),\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" >> "$LOOP_LOG"
+echo "$ITER" > .ryme-skill/tmp/current_build_iter
+BUILD_STATUS=$(cat .ryme-skill/tmp/build.status 2>/dev/null || echo "unknown")
+echo "{\"iter\":$ITER,\"build\":\"$BUILD_STATUS\",\"verify\":\"$(cat .ryme-skill/tmp/verify.log 2>/dev/null | head -c 200 | tr -d '"' | tr '\n' ' ')\",\"files\":$(cat .ryme-skill/graph/manifest.json 2>/dev/null | grep fileCount | grep -o '[0-9]*' || echo 0),\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" >> "$LOOP_LOG"
+cat "$LOOP_LOG" | tail -n 5
 # checkpoint commit per iter
 git add -A 2>&1 | head -n 10; git commit -m "build(<slug>): iter $ITER — scaffold [loop $LOOP_ID]" 2>&1 | tail -n 5 || true
 ```
 
-**5) Decide:**
+**5) Decide (with stuck detection):**
 
 - If achieved → break to Phase 4 (handoff)
-- Else if `ITER >= MAX_ITERS` → `BLOCKED`: print `LOOP_LOG`, `REASON` (last failing log), `ATTEMPTED`, `RECOMMENDATION`, ask user to narrow scope or approve fix
-- Else → iterate: main synthesizes failure (from build/verify/test logs), re-slices only the failing modules (don't redo green slices), loop to (1).
+- Else if `ITER >= 5` → `BLOCKED`: print `LOOP_LOG`, `REASON` (last failing log), `ATTEMPTED`, `RECOMMENDATION`, ask user to narrow scope or approve fix
+- Else if last 2 iters have identical `verify.log` (no progress) → `BLOCKED` with `REASON: no progress in 2 iters`
+- Else → iterate: main synthesizes failure (from build/verify/test logs), re-slices only failing modules (don't redo green slices), loop back to (1). **Sleep 1s between iters.**
 
 ### Guarantees
 

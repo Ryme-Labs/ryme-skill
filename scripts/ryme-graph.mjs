@@ -677,14 +677,42 @@ function buildGraph(root, files, techstack) {
   const nodes = [];
   const edges = [];
   let totalSymbols = 0;
+  const totalFiles = files.length;
+  if (totalFiles > 20000) {
+    console.warn(`Warning: large repo ${totalFiles} files — consider adding more .ryme-skillignore patterns for vendor/generated`);
+  }
 
-  for (const f of files) {
+  for (let idx = 0; idx < files.length; idx++) {
+    const f = files[idx];
+    // progress every 1000 files or 10%
+    if (idx > 0 && (idx % 1000 === 0 || idx === files.length - 1)) {
+      const pct = Math.round((idx / totalFiles) * 100);
+      const elapsed = Date.now() - start;
+      console.log(`  ... ${idx}/${totalFiles} files (${pct}%) — ${elapsed}ms elapsed`);
+      // stuck check: if single file takes >5s, it will show in next iteration
+      if (elapsed > 30000 && idx < totalFiles * 0.5) {
+        console.warn(`  Still at ${pct}% after ${elapsed}ms — large repo, consider incremental --update or .ryme-skillignore`);
+      }
+    }
+    // timeout guard: if total time >120s, warn but continue (don't hang forever)
+    if (Date.now() - start > 120000 && idx % 500 === 0) {
+      console.warn(`  Long run >120s at ${idx}/${totalFiles} — will continue but may be slow`);
+    }
     let content;
     try {
       content = fs.readFileSync(f.abs, "utf8");
     } catch { continue; }
     // skip binary-ish: contains null bytes
     if (content.includes("\0")) continue;
+    // skip huge files >5000 LOC or >500KB already filtered, but also skip generated huge files
+    const linesEst = content.split("\n").length;
+    if (linesEst > 5000) {
+      // still index but minimal parse: just record file with 0 symbols to avoid heavy regex on huge generated files
+      if (linesEst > 10000) {
+        nodes.push({ file: f.rel, ext: f.ext, lines: linesEst, hash: crypto.createHash("sha1").update(content.slice(0, 1000)).digest("hex").slice(0, 12), symbols: [], imports: [], exports: [] });
+        continue;
+      }
+    }
     const parsed = parseFile(f.rel, f.abs, f.ext, content);
     totalSymbols += parsed.symbols.length;
     nodes.push({
